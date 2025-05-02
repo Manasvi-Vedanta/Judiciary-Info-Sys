@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Cases {
+  id               Int         @id @default(autoincrement())
+  caseNumber       String      @unique
+  title            String
+  description      String?
+  status           CaseStatus  @default(FILED)
+  type             String
+  filedDate        DateTime    @default(now())
+  location         String?
+  plaintiffName    String
+  plaintiffAddress String?
+  defendantName    String
+  defendantAddress String?
+  judge            String
+  crimeType        String?
+  crimeDate        DateTime?
+  crimeLocation    String?
+  arrestingOfficer String?
+  arrestDate       DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime
+  nextHearing      DateTime
+  documents        Documents[]
+  hearings         Hearings[]
+  users            Users[]     @relation("CaseAssignedUsers")
+}
+
+model Documents {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String?
+  fileUrl      String
+  category     String
+  fileSize     Int
+  uploadedById String
+  caseId       Int
+  version      Int      @default(1)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime
+  cases        Cases    @relation(fields: [caseId], references: [id])
+  users        Users    @relation(fields: [uploadedById], references: [id])
+}
+
+model Hearings {
+  id          Int           @id @default(autoincrement())
+  title       String
+  description String?
+  date        DateTime
+  duration    Int
+  location    String
+  status      HearingStatus @default(SCHEDULED)
+  type        String
+  notes       String?
+  caseId      Int
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+  cases       Cases         @relation(fields: [caseId], references: [id])
+  users       Users[]       @relation("HearingParticipants")
+}
+
+model Notifications {
+  id        Int      @id @default(autoincrement())
+  message   String
+  read      Boolean  @default(false)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  users     Users    @relation(fields: [userId], references: [id])
+}
+
+model Users {
+  id            String          @id
+  email         String          @unique
+  name          String
+  role          Role            @default(LAWYER)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime
+  documents     Documents[]
+  notifications Notifications[]
+  cases         Cases[]         @relation("CaseAssignedUsers")
+  hearings      Hearings[]      @relation("HearingParticipants")
+}
+
+enum CaseStatus {
+  FILED
+  UNDER_REVIEW
+  SCHEDULED
+  IN_PROGRESS
+  ADJOURNED
+  CLOSED
+}
+
+enum HearingStatus {
+  SCHEDULED
+  COMPLETED
+  ADJOURNED
+  CANCELLED
+}
+
+enum Role {
+  REGISTRAR
+  JUDGE
+  LAWYER
+}
